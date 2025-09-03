@@ -5,14 +5,7 @@ Lightweight Python client for the NeSPReSO API (synthetic temperature/salinity p
 ## Install
 
 ```bash
-# From source (editable)
-pip install -e /unity/g2/jmiranda/nespreso_client
-
-# Or when published to PyPI (example)
 pip install nespreso-client
-
-# Optional extras for merging NetCDF batches
-pip install 'nespreso-client[merge]'
 ```
 
 Python 3.10+ is required.
