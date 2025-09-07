@@ -7,6 +7,7 @@ from typing import List
 import httpx
 
 from .utils import preprocess_inputs, apply_netcdf_global_attributes
+from datetime import datetime
 
 # Default API endpoint
 DEFAULT_API = "https://ozavala.coaps.fsu.edu/nespreso_profile"
@@ -41,6 +42,31 @@ async def fetch_predictions(lat,
 
     # Prepare request data
     data = {"lat": lat, "lon": lon, "date": date}
+
+    # Local validation before sending request
+    try:
+        if not isinstance(data["lat"], (list, tuple)) or not isinstance(data["lon"], (list, tuple)) or not isinstance(data["date"], (list, tuple)):
+            print("Invalid inputs: lat, lon, and date must be lists")
+            return None
+        if len(data["lat"]) == 0 or len(data["lon"]) == 0 or len(data["date"]) == 0:
+            print("Invalid inputs: lat, lon, and date cannot be empty")
+            return None
+        if not (len(data["lat"]) == len(data["lon"]) == len(data["date"])):
+            print("Invalid inputs: lat, lon, and date must have the same length")
+            return None
+        # Ranges and date format
+        for la, lo, dt in zip(data["lat"], data["lon"], data["date"]):
+            if not (-90.0 <= float(la) <= 90.0 and -180.0 <= float(lo) <= 180.0):
+                print(f"Invalid coordinate: ({la}, {lo})")
+                return None
+            try:
+                datetime.strptime(str(dt), "%Y-%m-%d")
+            except Exception:
+                print(f"Invalid date: {dt} (expected YYYY-MM-DD)")
+                return None
+    except Exception as exc:
+        print(f"Input validation error: {exc}")
+        return None
     timeout = httpx.Timeout(DEFAULT_TIMEOUT, connect=DEFAULT_CONNECT_TIMEOUT)
 
     try:
@@ -82,6 +108,18 @@ def get_predictions(lat,
     """
     # Preprocess inputs (handles various input types)
     lat, lon, date = preprocess_inputs(lat, lon, date)
+
+    # Early validation before launching async task
+    try:
+        if len(lat) == 0 or len(lon) == 0 or len(date) == 0:
+            print("Invalid inputs: lat, lon, and date cannot be empty")
+            return None
+        if not (len(lat) == len(lon) == len(date)):
+            print("Invalid inputs: lat, lon, and date must have the same length")
+            return None
+    except Exception as exc:
+        print(f"Input validation error: {exc}")
+        return None
     print(f"Fetching predictions for {len(lat)} points...")
 
     # Check if we're in an async context

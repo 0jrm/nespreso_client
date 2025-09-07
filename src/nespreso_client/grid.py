@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from typing import Dict, List, Optional
+from datetime import datetime
 
 import requests
 
@@ -31,10 +32,34 @@ def query_grid(date_str: str,
 
     # Prepare the request
     request_data = {"date": date_str}
+
+    # Validate date
+    try:
+        datetime.strptime(request_data["date"], "%Y-%m-%d")
+    except Exception:
+        print("Invalid date. Use YYYY-MM-DD.")
+        return {"success": False, "error": "Invalid date. Use YYYY-MM-DD."}
     if bbox is not None:
-        request_data["bbox"] = bbox
+        # Validate bbox
+        try:
+            if not (isinstance(bbox, (list, tuple)) and len(bbox) == 4):
+                return {"success": False, "error": "Invalid bbox. Use [lon_min, lat_min, lon_max, lat_max]."}
+            lon_min, lat_min, lon_max, lat_max = [float(x) for x in bbox]
+        except Exception:
+            return {"success": False, "error": "Invalid bbox values. Must be numeric [lon_min, lat_min, lon_max, lat_max]."}
+        if not (-180.0 <= lon_min <= 180.0 and -180.0 <= lon_max <= 180.0 and -90.0 <= lat_min <= 90.0 and -90.0 <= lat_max <= 90.0):
+            return {"success": False, "error": "BBOX out of range. Lon in [-180,180], Lat in [-90,90]."}
+        if not (lon_min < lon_max and lat_min < lat_max):
+            return {"success": False, "error": "BBOX order invalid. Require lon_min < lon_max and lat_min < lat_max."}
+        request_data["bbox"] = [lon_min, lat_min, lon_max, lat_max]
     if resolution is not None:
-        request_data["resolution"] = float(resolution)
+        try:
+            res = float(resolution)
+        except Exception:
+            return {"success": False, "error": "Resolution must be a positive number (degrees)."}
+        if not (res > 0):
+            return {"success": False, "error": "Resolution must be > 0 (degrees)."}
+        request_data["resolution"] = res
 
     if bbox is not None and resolution is not None:
         print(
